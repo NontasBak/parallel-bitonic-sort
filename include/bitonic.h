@@ -10,11 +10,11 @@ typedef struct {
 }Process;
 
 
-void bitonicSort(int num_p);
-void merge_up(int start_id, int size);
-void merge_down(int start_id, int size);
-void compare_up(int id1, int id2);
-void compare_down(int id1, int id2);
+void bitonicSort(Process* process, int num_p);
+void merge_up(Process* process, int start_id, int size);
+void merge_down(Process* process, int start_id, int size);
+void compare_up(Process p1, Process p2);
+void compare_down(Process p1, Process p2);
 
 void makeBitonic(Process** process, int num_p, int num_q);
 void freeBitonic(Process** process, int num_p);

@@ -13,7 +13,12 @@ int main() {
 	int num_p = pow(2, p); // 2^p processes
 	int num_q = pow(2, q);// 2^q elements per process
 
-	bitonicSort(num_p);
+	Process* process;
+	makeBitonic(&process, num_p, num_q);
+
+	bitonicSort(process, num_p);
+
+	freeBitonic(&process, num_p);
 
 	return 0;
 
