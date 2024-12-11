@@ -10,9 +10,11 @@ typedef struct {
 }Process;
 
 
-void merge(int* array, int size, int id);
-void merge_up(int* array, int low, int high);
-void merge_down(int* array, int low, int high);
+void bitonicSort(int num_p);
+void merge_up(int start_id, int size);
+void merge_down(int start_id, int size);
+void compare_up(int id1, int id2);
+void compare_down(int id1, int id2);
 
 void makeBitonic(Process** process, int num_p, int num_q);
 void freeBitonic(Process** process, int num_p);

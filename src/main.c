@@ -13,22 +13,7 @@ int main() {
 	int num_p = pow(2, p); // 2^p processes
 	int num_q = pow(2, q);// 2^q elements per process
 
-	Process* process;
-	makeBitonic(&process, num_p, num_q);
-
-	printf("-----UNSORTED BITONIC PROCESSES-----\n");
-	printProcess(process, num_p, num_q);
-	
-
-	for (int i = 0; i < num_p; i++) {
-		merge(process[i].array, num_p, process[i].id);
-	}
-
-	printf("-------SORTED PROCESSES------------\n");
-	printProcess(process, num_p, num_q);
-
-	freeBitonic(&process, num_p);
-
+	bitonicSort(num_p);
 
 	return 0;
 
