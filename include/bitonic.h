@@ -1,11 +1,10 @@
 #ifndef BITONIC_H
 #define BITONIC_H
 
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 
-typedef struct
-{
+typedef struct {
     int *array;
     int id;
 } Process;
