@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "../include/bitonic.h"
+#include "include/bitonic.h"
 #include "stdio.h"
 
 int main() {

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../include/bitonic.h"
+#include "include/bitonic.h"
 
 void bitonicSort(Process* processes, int num_p, int num_q) {
     // Initial sorting of the processes
