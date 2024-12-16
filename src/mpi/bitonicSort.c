@@ -7,9 +7,7 @@
 
 void bitonicSort(int rank, int num_p, int num_q, int* array) {
     // Initial sorting of the processes
-    printf("Process %d: Starting initial sort\n", rank);
     sortProcesses(rank, num_p, num_q, 1, array);
-    printf("Process %d: Finished initial sort\n", rank);
 
     // step defines the amount of blocks to be recursively merged up or down.
     // For example step = 2 means that 2 blocks will be merged up *and* 2 blocks
@@ -17,8 +15,7 @@ void bitonicSort(int rank, int num_p, int num_q, int* array) {
     // i defines the start id of the block to be merged.
     for (int step = 2; step <= num_p; step *= 2) {
         for (int i = 0; i < num_p; i += step * 2) {
-            printf("Process %d: Starting merging\n", rank);
-            printf("womp! %d %d\n", step, i);
+            // printf("womp! %d %d\n", step, i);
             if (i <= rank && rank < i + step) {
                 merge_up(rank, i, step, num_q, array);
             }
@@ -27,7 +24,7 @@ void bitonicSort(int rank, int num_p, int num_q, int* array) {
                 merge_down(rank, step + i, step, num_q, array);
             }
         }
-        printf("womp! %d\n", step);
+        // printf("womp! %d\n", step);
         MPI_Barrier(MPI_COMM_WORLD);
 
         sortProcesses(rank, num_p, num_q, step, array);
@@ -50,8 +47,6 @@ void merge_up(int rank, int start_id, int size, int num_q, int* array) {
         for (int i = 0; i < cut; i++) {
             compare_up_elementwise(rank, start_id + i, start_id + cut + i,
                                    num_q, array);
-            // printf("Merge up %d, %d", start_id + i, start_id + cut + i);
-            // printf("\n");
         }
         if (cut == 1) {
             MPI_Barrier(merge_up_comm);
@@ -83,8 +78,6 @@ void merge_down(int rank, int start_id, int size, int num_q, int* array) {
         for (int i = 0; i < cut; i++) {
             compare_down_elementwise(rank, start_id + i, start_id + cut + i,
                                      num_q, array);
-            // printf("Merge down %d, %d", start_id + i, start_id + cut + i);
-            // printf("\n");
         }
         if (cut == 1) {
             MPI_Barrier(merge_down_comm);
@@ -102,57 +95,58 @@ void merge_down(int rank, int start_id, int size, int num_q, int* array) {
 }
 
 // rank_p1 keeps the min elements, rank_p2 keeps the max elements
-void compare_up_elementwise(int rank, int rank_p1, int rank_p2, int num_q,
-                            int* array) {
+void compare_up_elementwise(int rank, int rank_p1, int rank_p2, int num_q, int* array) {
     if (rank == rank_p1) {
         int* recv_array = (int*)malloc(num_q * sizeof(int));
+        MPI_Request send_request, recv_request;
 
-        // printf("Rank %d sending to %d\n", rank, rank_p2);
-        MPI_Send(array, num_q, MPI_INT, rank_p2, 0, MPI_COMM_WORLD);
-        // printf("Rank %d receiving from %d\n", rank, rank_p2);
-        MPI_Recv(recv_array, num_q, MPI_INT, rank_p2, 0, MPI_COMM_WORLD,
-                 MPI_STATUS_IGNORE);
+        MPI_Isend(array, num_q, MPI_INT, rank_p2, 0, MPI_COMM_WORLD, &send_request);
+        MPI_Irecv(recv_array, num_q, MPI_INT, rank_p2, 0, MPI_COMM_WORLD, &recv_request);
+
+        MPI_Wait(&send_request, MPI_STATUS_IGNORE);
+        MPI_Wait(&recv_request, MPI_STATUS_IGNORE);
+
         keepMinElements(array, recv_array, num_q);
-
         free(recv_array);
     } else if (rank == rank_p2) {
         int* recv_array = (int*)malloc(num_q * sizeof(int));
+        MPI_Request send_request, recv_request;
 
-        // printf("Rank %d receiving from %d\n", rank, rank_p1);
-        MPI_Recv(recv_array, num_q, MPI_INT, rank_p1, 0, MPI_COMM_WORLD,
-                 MPI_STATUS_IGNORE);
-        // printf("Rank %d sending to %d\n", rank, rank_p1);
-        MPI_Send(array, num_q, MPI_INT, rank_p1, 0, MPI_COMM_WORLD);
+        MPI_Irecv(recv_array, num_q, MPI_INT, rank_p1, 0, MPI_COMM_WORLD, &recv_request);
+        MPI_Isend(array, num_q, MPI_INT, rank_p1, 0, MPI_COMM_WORLD, &send_request);
+
+        MPI_Wait(&recv_request, MPI_STATUS_IGNORE);
+        MPI_Wait(&send_request, MPI_STATUS_IGNORE);
 
         keepMaxElements(array, recv_array, num_q);
-
         free(recv_array);
     }
 }
 
-void compare_down_elementwise(int rank, int rank_p1, int rank_p2, int num_q,
-                              int* array) {
+void compare_down_elementwise(int rank, int rank_p1, int rank_p2, int num_q, int* array) {
     if (rank == rank_p1) {
         int* recv_array = (int*)malloc(num_q * sizeof(int));
+        MPI_Request send_request, recv_request;
 
-        // printf("Rank %d sending to %d\n", rank, rank_p2);
-        MPI_Send(array, num_q, MPI_INT, rank_p2, 0, MPI_COMM_WORLD);
-        // printf("Rank %d receiving from %d\n", rank, rank_p2);
-        MPI_Recv(recv_array, num_q, MPI_INT, rank_p2, 0, MPI_COMM_WORLD,
-                 MPI_STATUS_IGNORE);
+        MPI_Isend(array, num_q, MPI_INT, rank_p2, 0, MPI_COMM_WORLD, &send_request);
+        MPI_Irecv(recv_array, num_q, MPI_INT, rank_p2, 0, MPI_COMM_WORLD, &recv_request);
+
+        MPI_Wait(&send_request, MPI_STATUS_IGNORE);
+        MPI_Wait(&recv_request, MPI_STATUS_IGNORE);
+
         keepMaxElements(array, recv_array, num_q);
-
         free(recv_array);
     } else if (rank == rank_p2) {
         int* recv_array = (int*)malloc(num_q * sizeof(int));
+        MPI_Request send_request, recv_request;
 
-        // printf("Rank %d sending to %d\n", rank, rank_p1);
-        MPI_Send(array, num_q, MPI_INT, rank_p1, 0, MPI_COMM_WORLD);
-        // printf("Rank %d receiving from %d\n", rank, rank_p1);
-        MPI_Recv(recv_array, num_q, MPI_INT, rank_p1, 0, MPI_COMM_WORLD,
-                 MPI_STATUS_IGNORE);
+        MPI_Irecv(recv_array, num_q, MPI_INT, rank_p1, 0, MPI_COMM_WORLD, &recv_request);
+        MPI_Isend(array, num_q, MPI_INT, rank_p1, 0, MPI_COMM_WORLD, &send_request);
+
+        MPI_Wait(&recv_request, MPI_STATUS_IGNORE);
+        MPI_Wait(&send_request, MPI_STATUS_IGNORE);
+
         keepMinElements(array, recv_array, num_q);
-
         free(recv_array);
     }
 }

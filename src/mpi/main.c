@@ -16,6 +16,7 @@ void generateRandomNumbers(int *array, int num_q, int rank) {
 int main(int argc, char **argv) {
     int num_p, num_q;
     int rank, size;
+    double start_time, end_time;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -33,7 +34,11 @@ int main(int argc, char **argv) {
     // }
     // printf("\n");
 
+    start_time = MPI_Wtime();
+
     bitonicSort(rank, num_p, num_q, array);
+
+    end_time = MPI_Wtime();
 
     // Print final result after sorting
     MPI_Barrier(MPI_COMM_WORLD);
@@ -49,6 +54,10 @@ int main(int argc, char **argv) {
             printf("\n");
         }
         MPI_Barrier(MPI_COMM_WORLD);
+    }
+
+    if (rank == 0) {
+        printf("Execution time: %f seconds\n", end_time - start_time);
     }
 
     free(array);
