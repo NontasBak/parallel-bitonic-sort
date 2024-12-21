@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
     end_time = MPI_Wtime();
 
     // Print final result after sorting
-    //print(rank, size, num_q, array);
+    print(rank, size, num_q, array);
     
     MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {

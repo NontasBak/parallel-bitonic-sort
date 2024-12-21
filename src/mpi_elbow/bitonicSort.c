@@ -30,10 +30,8 @@ void bitonicSort(int rank, int num_p, int num_q, int **array)
             }
         }
         // printf("womp! %d\n", step);
-        
         MPI_Barrier(MPI_COMM_WORLD);
         elbowMerge(rank, num_p, num_q, step, array);
-        MPI_Barrier(MPI_COMM_WORLD);
     }
 }
 
@@ -211,86 +209,53 @@ void keepMaxElements(int *array, int *recv_array, int num_q)
 
 void elbowMerge(int rank, int num_p, int num_q, int size, int **array)
 {
-    bool sort = true, steady = true;
-    int elbow = 0; // index of elbow
-
-    findElbow(&sort, &steady, num_q, *array, &elbow);
-    MPI_Barrier(MPI_COMM_WORLD);
-    // sorting placing elbow element first
-    sortElbow(sort, steady, num_q, elbow, rank, size, array);
+    int elbow; // index of elbow
+    findElbow(num_q, *array, &elbow);
+    // sorting placing min elbow element first
+    sortElbow(num_q, elbow, rank, size, array);
 }
 
-// sort is true when bitonic is ascending first, false for descenfing first
-// steady is true when bitonic is steady (contains the same number)
-// returns the place of elbow, elbow is 0 when array is sorted all the way or steady
-void findElbow(bool *sort, bool *steady, int num_q, int *array, int *elbow)
+// finds the min element as elbow
+void findElbow(int num_q, int *array, int *elbow)
 {
-    bool noSort = true; // no sorting has been found
+    int min = 0; // first element as elbow
 
-    for (int i = 0; i < num_q - 1; i++)
+    for (int i = 1; i < num_q; i++)
     {
-        if (array[i] < array[i + 1])
+        if (array[min] > array[i]) // elements smaller than elbow (descending order)
         {
-            if (noSort)
-            {                   // initiallize as ascending
-                (*sort) = true; // ascending
-                (*steady) = false;
-                noSort = false;
+            min = i;
+            /* MAYBE FASTER?
+            //in descending order if next element from elbow is greater
+            //than elbow then elbow is the min of the bitonic
+            if(array[min]<array[min+1] && min<= num_q-2){
+                break;
             }
-            else
-            {
-                if ((*sort) == false)
-                {
-                    (*elbow) = i;
-                    return;
-                }
-            }
-        }
-        else if (array[i] > array[i + 1])
-        {
-
-            if (noSort)
-            {                    // initiallize as descending
-                (*sort) = false; // descending
-                (*steady) = false;
-                noSort = false;
-            }
-            else
-            {
-                if ((*sort) == true)
-                {
-                    (*elbow) = i;
-                    return;
-                }
-            }
+            */
         }
     }
-    if (noSort) // If no sort has been found it is a steady array
+    (*elbow) = min;
+}
+
+void sortElbow(int num_q, int elbow, int rank, int size, int **array)
+{
+    int left, right; // array pointers
+
+    if (elbow == 0) // first element as elbow
     {
-        (*steady) = true;
-        (*elbow) = 0;
+        left = num_q - 1; // left pointer to the end
+        right = elbow + 1;
+    }
+    else if (elbow == num_q - 1) // last element as elbow
+    {
+        right = 0; // right pointer to the start
+        left = elbow - 1;
     }
     else
     {
-        // when sorting is found but no elbow
-        // sequence is already sorted
-        (*elbow) = 0;
+        left = elbow - 1;
+        right = elbow + 1;
     }
-}
-
-void sortElbow(bool sort, bool steady, int num_q, int elbow, int rank, int size, int **arr)
-{
-
-    int *array = (*arr);
-
-    // steady array is sorted
-    if (steady)
-    {
-        return;
-    }
-
-    int left = elbow - 1;  // left pointer to array
-    int right = elbow + 1; // right pointer to array
 
     // memory allocation for sorted array
     int *sorted = (int *)malloc(num_q * sizeof(int));
@@ -303,128 +268,51 @@ void sortElbow(bool sort, bool steady, int num_q, int elbow, int rank, int size,
     if (rank % (size * 2) < size) // defines which processes should be in ascending or descending order
     {
         // sort process in ascending order
-        if (sort == true && elbow == 0) // already sorted in ascending order
-        {
-            free(sorted);
-            return;
-        }
-        else if (sort == false && elbow == 0) // already sorted in descending order
-        {
-            // change sorting order
-            reverse(array, num_q, sorted);
-            free(*arr);
-            *arr = sorted;
-            return;
-        }
-        else if (sort == false) // descending first
-        {
-            // elbow is the min element
-            int index = 0;
-            sorted[index] = array[elbow]; // first element as elbow
+        int index = 0;
+        sorted[index] = (*array)[elbow]; // first element as elbow
 
-            while (left != right) // elbow sorting
-            {
-                index++;
-                circular_compare(&left, &right, index, sort, array, sorted, num_q);
-            }
-            sorted[index + 1] = array[left];
-        }
-        else // ascending first
+        while (left != right) // elbow sorting
         {
-            // elbow is the max element
-            int index = num_q - 1;
-            sorted[index] = array[elbow]; // last element as elbow
-
-            while (left != right) // elbow sort
-            {
-                index--;
-                circular_compare(&left, &right, index, sort, array, sorted, num_q);
-            }
-            sorted[index - 1] = array[left];
+            index++;
+            compareElements(&left, &right, index, num_q, *array, sorted);
         }
+        sorted[index + 1] = (*array)[left];
     }
+
     else
     {
         // sort in descending order
-        if (sort == false && elbow == 0) // already sorted in descending order
-        {
-            free(sorted);
-            return;
-        }
-        else if (sort == true && elbow == 0) // already sorted in ascending order
-        {
-            // change sorting order
-            reverse(array, num_q, sorted);
-            free(*arr);
-            *arr = sorted;
-            return;
-        }
-        else if (sort == false) // descending first
-        {
-            // elbow is the min element
-            int index = num_q - 1;
-            sorted[index] = array[elbow]; // last element as elbow
+        int index = num_q - 1;
+        sorted[index] = (*array)[elbow]; // last element as elbow
 
-            while (left != right) // elbow sort
-            {
-                index--;
-                circular_compare(&left, &right, index, sort, array, sorted, num_q);
-            }
-            sorted[index - 1] = array[left];
-        }
-        else // ascending first
+        while (left != right) // elbow sort
         {
-            // elbow is the max element
-            int index = 0;
-            sorted[index] = array[elbow]; // first element as elbow
-
-            while (left != right) // elbow sort
-            {
-                index++;
-                circular_compare(&left, &right, index, sort, array, sorted, num_q);
-            }
-            sorted[index + 1] = array[left];
+            index--;
+            compareElements(&left, &right, index, num_q, *array, sorted);
         }
+        sorted[index - 1] = (*array)[left];
     }
 
-    free(*arr);    // delete input array
-    *arr = sorted; // array pointer to sorted array
+    free(*array);    // delete input array
+    *array = sorted; // array pointer to sorted array
 }
 
-// finds min when bitonic is ascending first
-//or max element when bitonic is depending first
-void circular_compare(int *left, int *right, int index, bool sort,
-                      int *array, int *sorted, int num_q)
+void compareElements(int *left, int *right, int index, int num_q, int *array, int *sorted)
 {
-    if (sort == false) // descending first
-    {                  // find min element
-        if (array[(*right)] <= array[(*left)])
-        {
-            sorted[index] = array[(*right)];
-            (*right)++;
-        }
-        else
-        {
-            sorted[index] = array[(*left)];
-            (*left)--;
-        }
-    }
-    else // ascending first
+    int l = (*left);
+    int r = (*right);
+
+    if (array[r] <= array[l])
     {
-        // find max element
-        if (array[(*right)] <= array[(*left)])
-        {
-            sorted[index] = array[(*left)];
-            (*left)--;
-        }
-        else
-        {
-            sorted[index] = array[(*right)];
-            (*right)++;
-        }
+        sorted[index] = array[r];
+        (*right)++;
+    }
+    else
+    {
+        sorted[index] = array[l];
+        (*left)--;
     }
 
-    // pointers scan the array in a circular manner
     if ((*left) < 0) // when left pointer reaches the start of array
     {                // place it at the and of the array
         (*left) = num_q - 1;
@@ -435,28 +323,20 @@ void circular_compare(int *left, int *right, int index, bool sort,
     }
 }
 
-//changes the sorting order of sorted array
-void reverse(int *array, int num_q, int *sorted)
+// helpers for qsort
+int compare_asc(const void *a, const void *b) { return (*(int *)a - *(int *)b); }
+int compare_des(const void *a, const void *b) { return (*(int *)b - *(int *)a); }
+
+void print(int rank, int size, int num_q, int *array)
 {
-    int j = num_q - 1;
-    for (int i = 0; i < num_q; i++)
-    {
-        sorted[j] = array[i];
-        j--;
-    }
-}
-
-//helpers for qsort
-int compare_asc(const void* a, const void* b) { return (*(int*)a - *(int*)b); }
-int compare_des(const void* a, const void* b) { return (*(int*)b - *(int*)a); }
-
-
-void print(int rank, int size, int num_q, int* array) {
     MPI_Barrier(MPI_COMM_WORLD);
-    for (int i = 0; i < size; i++) {
-        if (rank == i) {
+    for (int i = 0; i < size; i++)
+    {
+        if (rank == i)
+        {
             printf("Process %d: ", rank);
-            for (int j = 0; j < num_q; j++) {
+            for (int j = 0; j < num_q; j++)
+            {
                 printf("%2d ", array[j]);
             }
             MPI_Barrier(MPI_COMM_WORLD);
