@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
     int *array = (int *)malloc(num_q * sizeof(int));
     generateRandomNumbers(array, num_q, rank);
 
+    // Print initial arrays
     // printf("Process %d: ", rank);
     // for (int i = 0; i < num_q; i++) {
     //     printf("%d ", array[i]);
@@ -41,12 +42,14 @@ int main(int argc, char **argv) {
     end_time = MPI_Wtime();
 
     // Print final result after sorting
-    print(rank, size, num_q, array);
+    // print(rank, size, num_q, array);
     
     MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
         printf("Execution time: %f seconds\n", end_time - start_time);
     }
+
+    evaluateResult(rank, num_p, num_q, array);
 
     free(array);
     MPI_Finalize();

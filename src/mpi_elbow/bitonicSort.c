@@ -18,7 +18,8 @@ void bitonicSort(int rank, int num_p, int num_q, int **array) {
 
             MPI_Barrier(MPI_COMM_WORLD);
         }
-        elbowMerge(rank, num_p, num_q, group_size, array, sort_descending);
+        elbowMerge(num_p, num_q, array, sort_descending);
+        MPI_Barrier(MPI_COMM_WORLD);
     }
 }
 
@@ -64,11 +65,31 @@ void keepMaxElements(int *array, int *recv_array, int num_q) {
     }
 }
 
-void elbowMerge(int rank, int num_p, int num_q, int size, int **array,
-                bool sort_descending) {
+void elbowMerge(int num_p, int num_q, int **array, bool sort_descending) {
     int elbow = findElbow(num_q, *array);  // index of elbow
-    // sorting placing min elbow element first
-    sortElbow(num_q, elbow, rank, size, array, sort_descending);
+
+    int left = elbow;
+    int right = (left == num_q - 1) ? 0 : (left + 1);
+
+    // Sorted array
+    int *sorted = (int *)malloc(num_q * sizeof(int));
+    if (sorted == NULL) {
+        printf("Error by allocating memory!");
+        return;
+    }
+
+    if (sort_descending) {
+        for (int index = num_q - 1; index >= 0; index--) {
+            compareElements(&left, &right, index, num_q, *array, sorted);
+        }
+    } else {
+        for (int index = 0; index < num_q; index++) {
+            compareElements(&left, &right, index, num_q, *array, sorted);
+        }
+    }
+
+    free(*array);
+    *array = sorted;
 }
 
 // finds the min element as elbow
@@ -83,62 +104,7 @@ int findElbow(int num_q, int *array) {
     return min;
 }
 
-void sortElbow(int num_q, int elbow, int rank, int size, int **array,
-               bool sort_descending) {
-    int left, right;  // array pointers
-
-    if (elbow == 0)  // first element as elbow
-    {
-        left = num_q - 1;  // left pointer to the end
-        right = elbow + 1;
-    } else if (elbow == num_q - 1)  // last element as elbow
-    {
-        right = 0;  // right pointer to the start
-        left = elbow - 1;
-    } else {
-        left = elbow - 1;
-        right = elbow + 1;
-    }
-
-    // memory allocation for sorted array
-    int *sorted = (int *)malloc(num_q * sizeof(int));
-    if (sorted == NULL) {
-        printf("Error by allocating memory!");
-        return;
-    }
-
-    if (!sort_descending)  // defines which processes should be in
-                           // ascending or descending order
-    {
-        // sort process in ascending order
-        int index = 0;
-        sorted[index] = (*array)[elbow];  // first element as elbow
-
-        while (left != right)  // elbow sorting
-        {
-            index++;
-            compareElements(&left, &right, index, num_q, *array, sorted);
-        }
-        sorted[index + 1] = (*array)[left];
-    }
-
-    else {
-        // sort in descending order
-        int index = num_q - 1;
-        sorted[index] = (*array)[elbow];  // last element as elbow
-
-        while (left != right)  // elbow sort
-        {
-            index--;
-            compareElements(&left, &right, index, num_q, *array, sorted);
-        }
-        sorted[index - 1] = (*array)[left];
-    }
-
-    free(*array);     // delete input array
-    *array = sorted;  // array pointer to sorted array
-}
-
+// Places the min element between left and right into the index position
 void compareElements(int *left, int *right, int index, int num_q, int *array,
                      int *sorted) {
     int l = (*left);
@@ -146,19 +112,10 @@ void compareElements(int *left, int *right, int index, int num_q, int *array,
 
     if (array[r] <= array[l]) {
         sorted[index] = array[r];
-        (*right)++;
+        (*right) = (r == num_q - 1) ? 0 : (r + 1);
     } else {
         sorted[index] = array[l];
-        (*left)--;
-    }
-
-    if ((*left) < 0)  // when left pointer reaches the start of array
-    {                 // place it at the and of the array
-        (*left) = num_q - 1;
-    } else if ((*right) >
-               num_q - 1)  // when right pointer reaches the end of the array
-    {                      // place it at the start of the array
-        (*right) = 0;
+        (*left) = (l == 0) ? (num_q - 1) : (l - 1);
     }
 }
 
@@ -183,5 +140,35 @@ void print(int rank, int size, int num_q, int *array) {
             fflush(stdout);
         }
         MPI_Barrier(MPI_COMM_WORLD);
+    }
+}
+
+void evaluateResult(int rank, int num_p, int num_q, int *array) {
+    int last_element = array[num_q - 1];
+    int next_first_element;
+    bool is_sorted = true;
+
+    if (rank < num_p - 1) {
+        MPI_Send(&last_element, 1, MPI_INT, rank + 1, 0, MPI_COMM_WORLD);
+    }
+
+    if (rank > 0) {
+        MPI_Recv(&next_first_element, 1, MPI_INT, rank - 1, 0, MPI_COMM_WORLD,
+                 MPI_STATUS_IGNORE);
+        if (next_first_element > array[0]) {
+            is_sorted = false;
+        }
+    }
+
+    bool global_is_sorted;
+    MPI_Reduce(&is_sorted, &global_is_sorted, 1, MPI_C_BOOL, MPI_LAND, 0,
+               MPI_COMM_WORLD);
+
+    if (rank == 0) {
+        if (global_is_sorted) {
+            printf("Global array is sorted.\n");
+        } else {
+            printf("Global array is not sorted.\n");
+        }
     }
 }

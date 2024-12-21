@@ -18,11 +18,12 @@ int compare_des(const void *a, const void *b);
 void minmax(int rank, int partner_rank, int num_q, int *array,
             bool sort_descending);
 
-void elbowMerge(int rank, int num_p, int num_q, int size, int **array, bool sort_descending);
+void elbowMerge(int num_p, int num_q, int **array,
+                bool sort_descending);
 int findElbow(int num_q, int *array);
-void sortElbow(int num_q, int elbow, int rank, int size, int **array, bool sort_descending);
 void compareElements(int *left, int *right, int index, int num_q, int *array,
                      int *sorted);
 void print(int rank, int size, int num_q, int *array);
+void evaluateResult(int rank, int size, int num_q, int *array);
 
 #endif
