@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     num_p = size; // Default is 4 (check the Makefile)
-    num_q = pow(2, 5);
+    num_q = pow(2, 3);
 
     int *array = (int *)malloc(num_q * sizeof(int));
     generateRandomNumbers(array, num_q, rank);
