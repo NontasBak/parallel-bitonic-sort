@@ -1,0 +1,175 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usepackage{afterpage}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{subcaption}
+\graphicspath{{assets/}}
+
+\title{Sorting arrays in parallel with Bitonic Sort using MPI}
+\author{Eleni Koumparidou and Epameinondas Bakoulas}
+\date{January 2025}
+
+\begin{document}
+
+\maketitle
+
+\section{Objective}
+Sorting algorithms usually take $O(nlogn)$ time to sort an array of size n. Bitonic sort is a parallel sorting 
+algorithm that can sort very large arrays faster with the power of MPI and parallel processing. In this report, 
+we will present the implementation of this algorithm. We will also present the results of our experiments 
+and compare the different benchmarks.
+
+\section{Algorithm Analysis}
+
+\subsection{Overview}
+
+Before the algoirithm runs, the user must specify the number of elements and processes.
+Let $p = 2^k$ be the number of processes where $k = [1:7]$ and $2^q$ the number of elements in each process
+where $q = [20:27]$. Our goal is to sort an array of size $p * 2^q$.
+
+\subsection{Parallelism - MPI}
+
+The algorithm will follow the standard \textbf{Bitonic Sort Network} pattern as shown in Figure \ref{fig:bitonic-sort-network}.
+Our goal is to create bitonic sequences of size $2, 4, 8, ..., p$ and then, with the correct exchanges between
+processes, make bigger bitonic sequences. So our first step is to create bitonic sequences using 2 processes each time.
+In order to do that, we will locally sort the processes in ascending/descending order using \texttt{quickSort (qsort)}.
+This step is quite costly but it is necessary for the algorithm and we will only do it once.
+
+Now we can start the communications between the processes. Each process will keep either the \texttt{min} or
+\texttt{max} elements element wise. Once this finishes, every process (block) will be a bitonic sequence, so we can sort 
+them locally in O(n) time by applying the \texttt{elbowSort} algorithm explained in detail later on.
+
+We repeat this process but now we initally communicate with the neighbors of distance 2, and then with 
+the neighbors of distance 1. The sorting always takes place right after we communicate with the closest neighbor.
+In total, this process is repeated $\log_2{p}$ times, and each time we double the initial distance. 
+This is clearly visible in Figure \ref{fig:bitonic-sort-network}, where the total steps are equal to $\log_2{8} = 3$.
+
+Finally, we end up with $p$ processes sorted in ascending order, and if we merge them together we get a fully
+sorted array of size $p * 2^q$.
+
+
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{bitonic-sort-network.png}
+    \caption{Bitonic Sort Network}
+    \label{fig:bitonic-sort-network}
+\end{figure}
+
+
+\subsection{Hypercube model}
+
+Finding the right neighbor to exchange data with in each stage of the algorithm can be quite tricky. One possible way
+is to leverage the power of the hypercube model. First, we give each process a unique $log_2{p}$ bit id. In the case
+of 8 processes, each process will have a 3 bit id, as shown in Figure \ref{fig:hypercube-model}. In order to find the right neighbor, all we
+need to do is compute $$pid \oplus distance$$ where $\oplus$ is the XOR (exclusive-OR) operator and $pid$ the process id.
+
+\begin{figure}[h]
+    \centering
+    
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \begin{tikzpicture}[scale=1.5, every node/.style={circle, draw, fill=white, inner sep=2pt, text centered}]
+            % 1st Cube (Upper Left)
+            \node (3D-1) at (1,-3.5) {000};
+            \node (3D-2) at (1,-1.5) {001};
+            \node (3D-3) at (3,-3.5) {010};
+            \node (3D-4) at (3,-1.5) {011};
+            \node (3D-5) at (2,-4.5) {100};
+            \node (3D-6) at (2,-2.5) {101};
+            \node (3D-7) at (4,-4.5) {110};
+            \node (3D-8) at (4,-2.5) {111};
+            
+            % Edges for the first cube (Upper Left)
+            \draw (3D-1) -- (3D-2);
+            \draw (3D-2) -- (3D-4);
+            \draw (3D-4) -- (3D-3);
+            \draw (3D-3) -- (3D-1);
+            \draw [<->, thick, draw=blue] (3D-1) -- (3D-5);
+            \draw [<->, thick, draw=blue] (3D-2) -- (3D-6);
+            \draw [<->, thick, draw=blue] (3D-3) -- (3D-7);
+            \draw [<->, thick, draw=blue] (3D-4) -- (3D-8);
+            \draw (3D-5) -- (3D-6);
+            \draw (3D-6) -- (3D-8);
+            \draw (3D-8) -- (3D-7);
+            \draw (3D-7) -- (3D-5);
+        \end{tikzpicture}
+        \caption{Communications at distance 4}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \begin{tikzpicture}[scale=1.5, every node/.style={circle, draw, fill=white, inner sep=2pt, text centered}]
+            % 2nd Cube (Upper Right)
+            \node (3D-9) at (6,-3.5) {000};
+            \node (3D-10) at (6,-1.5) {001};
+            \node (3D-11) at (8,-3.5) {010};
+            \node (3D-12) at (8,-1.5) {011};
+            \node (3D-13) at (7,-4.5) {100};
+            \node (3D-14) at (7,-2.5) {101};
+            \node (3D-15) at (9,-4.5) {110};
+            \node (3D-16) at (9,-2.5) {111};
+            
+            % Edges for the second cube (Upper Right)
+            \draw (3D-9) -- (3D-10);
+            \draw[<->, thick, draw=blue] (3D-10) -- (3D-12);
+            \draw (3D-12) -- (3D-11);
+            \draw[<->, thick, draw=blue] (3D-11) -- (3D-9);
+            \draw (3D-9) -- (3D-13);
+            \draw (3D-10) -- (3D-14);
+            \draw (3D-11) -- (3D-15);
+            \draw (3D-12) -- (3D-16);
+            \draw (3D-13) -- (3D-14);
+            \draw[<->, thick, draw=blue] (3D-14) -- (3D-16);
+            \draw (3D-16) -- (3D-15);
+            \draw[<->, thick, draw=blue] (3D-15) -- (3D-13);
+        \end{tikzpicture}
+        \caption{Communications at distance 2}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.6\textwidth}
+        \centering
+        \begin{tikzpicture}[scale=1.5, every node/.style={circle, draw, fill=white, inner sep=2pt, text centered}]
+            % 3rd Cube (Lower Middle)
+            \node (3D-17) at (4,-7.5) {000};
+            \node (3D-18) at (4,-5.5) {001};
+            \node (3D-19) at (6,-7.5) {010};
+            \node (3D-20) at (6,-5.5) {011};
+            \node (3D-21) at (5,-8.5) {100};
+            \node (3D-22) at (5,-6.5) {101};
+            \node (3D-23) at (7,-8.5) {110};
+            \node (3D-24) at (7,-6.5) {111};
+            
+            % Edges for the third cube (Lower Middle)
+            \draw[<->, thick, draw=blue] (3D-17) -- (3D-18);
+            \draw (3D-18) -- (3D-20);
+            \draw[<->, thick, draw=blue] (3D-20) -- (3D-19);
+            \draw (3D-19) -- (3D-17);
+            \draw (3D-17) -- (3D-21);
+            \draw (3D-18) -- (3D-22);
+            \draw (3D-19) -- (3D-23);
+            \draw (3D-20) -- (3D-24);
+            \draw[<->, thick, draw=blue] (3D-21) -- (3D-22);
+            \draw (3D-22) -- (3D-24);
+            \draw[<->, thick, draw=blue] (3D-24) -- (3D-23);
+            \draw (3D-23) -- (3D-21);
+        \end{tikzpicture}
+        \caption{Communications at distance 1}
+    \end{subfigure}
+    
+    \caption{(Hyper)cube model with 8 processes.}
+    \label{fig:hypercube-model}
+\end{figure}
+
+\subsection{Elbow sort}
+
+\section{Benchmarks}
+
+
+\end{document}
