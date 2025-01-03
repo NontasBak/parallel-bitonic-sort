@@ -168,8 +168,48 @@ need to do is compute $$pid \oplus distance$$ where $\oplus$ is the XOR (exclusi
 \end{figure}
 
 \subsection{Elbow sort}
+\texttt{ElbowSort} sorts efficiently a bitonic sequence in \textbf{O(n)} time:
+\begin{itemize}
+\item
+The minimum element of the bitonic sequence, known as the \textbf{elbow}, is found in \textbf{linear time} and depending on the order of the sorting, it is placed as the first or last element of the sorted array.
+\item 
+The array is scanned in a circular way, by placing a \texttt{left} and a \texttt{right} pointer to the left and right of the elbow. This means that when one pointer reaches the end of the array, it loops around to the other end.  
+\end{itemize}
+During the scanning process, the smallest of the two elements pointed is placed in the sorted array and the corresponding pointer moves to the next element, until all elements have been placed into the sorted array in \textbf{linear time} again. The sorting direction (ascending or descending) and the placement of the elbow (first or last) are determined by the ID of the process combined with the phase of the procedure, as shown in Figure \ref{fig:bitonic-sort-network}.
 
 \section{Benchmarks}
+Different testings took place in \textbf{rome partition} of \href{https://hpc.it.auth.gr/}{\textbf{Aristotel Cluster}} to test the performance of our sorting algorithm, inlcluding efficiency and speed. To ensure that valid results were provided, we developed a function \texttt{evaluateResult}, which compares only the last element of a process and the first element of the next one to confirm that the global array is sorted.
+
+\subsection{Performance}
+
+
+\subsection{Parallel processing}
+The performance of sorting 2\textsuperscript{27} elements across different processes is presented in Table \ref{tab:acceleration}. In case of 128 processes, the algorithm's speed increases by \textbf{9.56}, while the execution time is almost \textbf{10 times reduced}. This confirms that increasing the number of processes accelerates the algorithm's execution.
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{processes} & 1 & 2 & 4 & 8 & 16 & 32 & 64 & 128 \\
+\hline
+\textbf{speedup} & 1 & 1.84 & 3.05 & 4.64 & 4.67 & 6.14& 7.70 & 9.56 \\
+\hline
+\textbf{time} & 14.105497 & 7.637068 & 4.612354 & 3.035330 & 3.014933 & 2.296470 & 1.830522 & 1.474246 \\
+\hline
+\end{tabular}
+\caption{Performance for 2\textsuperscript{27} elements across different processes.}
+\label{tab:acceleration}
+\end{table}
+
+\subsection{Using Nodes}
+In Figure \ref{fig:proc vs nodes}, we analyzed the sorting of $q = [20:27]$ elements while increasing the number of nodes used for the partition. We observed a significant reduction in execution time, with a decrease of up to 50\% for 8 nodes.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\linewidth]{execution_time_vs_elements.png}
+    \caption{Execution time using different number of nodes}
+    \label{fig:proc vs nodes}
+\end{figure}
+
 
 
 \end{document}
