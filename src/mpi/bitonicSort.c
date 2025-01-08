@@ -15,11 +15,8 @@ void bitonicSort(int rank, int num_p, int num_q, int **array) {
             int partner_rank = rank ^ distance;
 
             minmax(rank, partner_rank, num_q, *array, sort_descending);
-
-            MPI_Barrier(MPI_COMM_WORLD);
         }
         elbowMerge(num_p, num_q, array, sort_descending);
-        MPI_Barrier(MPI_COMM_WORLD);
     }
 }
 
@@ -147,6 +144,14 @@ void evaluateResult(int rank, int num_p, int num_q, int *array) {
     int last_element = array[num_q - 1];
     int next_first_element;
     bool is_sorted = true;
+
+    // Check if the local array is sorted
+    for (int i = 1; i < num_q; i++) {
+        if (array[i - 1] > array[i]) {
+            is_sorted = false;
+            break;
+        }
+    }
 
     if (rank < num_p - 1) {
         MPI_Send(&last_element, 1, MPI_INT, rank + 1, 0, MPI_COMM_WORLD);
