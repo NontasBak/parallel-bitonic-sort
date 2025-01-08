@@ -28,9 +28,8 @@ and compare the different benchmarks.
 
 \subsection{Overview}
 
-Before the algoirithm runs, the user must specify the number of elements and processes.
-Let $p = 2^k$ be the number of processes where $k = [1:7]$ and $2^q$ the number of elements in each process
-where $q = [20:27]$. Our goal is to sort an array of size $p * 2^q$.
+Our goal is to sort an array of size $p * 2^q$, where $p = 2^k$, $k = [1:7]$ is the number of processes 
+and $2^q$, $q = [20:27]$ the number of elements in each process.
 
 \subsection{Parallelism - MPI}
 
@@ -52,7 +51,26 @@ This is clearly visible in Figure \ref{fig:bitonic-sort-network}, where the tota
 Finally, we end up with $p$ processes sorted in ascending order, and if we merge them together we get a fully
 sorted array of size $p * 2^q$.
 
-
+\begin{figure}[H]
+\begin{verbatim}
+void bitonicSort(int rank, int num_p, int num_q, int **array) {
+    // Initial sorting of the processes
+    sortProcesses(rank, num_q, *array);
+    for (int group_size = 2; group_size <= num_p; group_size *= 2) {
+        bool sort_descending = rank & group_size;
+        for (int distance = group_size / 2; distance > 0; distance /= 2) {
+            int partner_rank = rank ^ distance;
+            minmax(rank, partner_rank, num_q, *array, sort_descending);
+        }
+        elbowMerge(num_p, num_q, array, sort_descending);
+    }
+}
+\end{verbatim}
+\caption{Bitonic Sort Algorithm. The function sortProcesses sorts each process using quick sort, while the
+minmax function exchanges the min/max elements between two processes. Finally, the elbowMerge function sorts
+the bitonic sequence locally.}
+\label{alg:bitonic-sort}
+\end{figure}
 
 
 \begin{figure}[H]
@@ -184,7 +202,7 @@ Different testings took place in \textbf{rome partition} of \href{https://hpc.it
 
 
 \subsection{Parallel processing}
-The performance of sorting 2\textsuperscript{27} elements across different processes is presented in Table \ref{tab:acceleration}. In case of 128 processes, the algorithm's speed increases by \textbf{9.56}, while the execution time is almost \textbf{10 times reduced}. This confirms that increasing the number of processes accelerates the algorithm's execution.
+The performance of sorting 2\textsuperscript{27} elements across different processes is presented in Table \ref{tab:acceleration}. The speedup is calculated by comparing the execution time to that of a single process, which is equivalent to using quick sort. In the case of 128 processes, the execution time is almost \textbf{10 times reduced}. This confirms that increasing the number of processes accelerates the algorithm's execution.
 \begin{table}[h!]
 \centering
 \begin{tabular}{|c|c|c|c|c|c|c|c|c|}
