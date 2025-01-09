@@ -198,28 +198,28 @@ During the scanning process, the smallest of the two elements pointed is placed 
 \section{Benchmarks}
 Different testings took place in \textbf{rome partition} of \href{https://hpc.it.auth.gr/}{\textbf{Aristotel Cluster}} to test the performance of our sorting algorithm, inlcluding efficiency and speed. To ensure that valid results were provided, we developed a function \texttt{evaluateResult}, which compares only the last element of a process and the first element of the next one to confirm that the global array is sorted.
 
-\subsection{Performance}
-
+\subsection{Efficiency \& Scaling}
+Figure \ref{fig:performance} shows the performance of our code in efficiently handling large datasets. In each execution, the number of elements as well as the number of parallel processes was doubled (2\textsuperscript{27} elements/process).
 
 \subsection{Parallel processing}
-The performance of sorting 2\textsuperscript{27} elements across different processes is presented in Table \ref{tab:acceleration}. The speedup is calculated by comparing the execution time to that of a single process, which is equivalent to using quick sort. In the case of 128 processes, the execution time is almost \textbf{10 times reduced}. This confirms that increasing the number of processes accelerates the algorithm's execution.
-\begin{table}[h!]
-\centering
-\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
-\hline
-\textbf{processes} & 1 & 2 & 4 & 8 & 16 & 32 & 64 & 128 \\
-\hline
-\textbf{speedup} & 1 & 1.84 & 3.05 & 4.64 & 4.67 & 6.14& 7.70 & 9.56 \\
-\hline
-\textbf{time} & 14.105497 & 7.637068 & 4.612354 & 3.035330 & 3.014933 & 2.296470 & 1.830522 & 1.474246 \\
-\hline
-\end{tabular}
-\caption{Performance for 2\textsuperscript{27} elements across different processes.}
-\label{tab:acceleration}
-\end{table}
+The performance of sorting 2\textsuperscript{27} elements in different processes is presented in Figure \ref{fig:speedup}. The speedup is calculated by comparing the execution time to that of a single process, which is equivalent to using quick sort. In the case of 128 processes, the execution time is almost \textbf{20 times reduced}. This confirms that increasing the number of processes accelerates the execution of the algorithm.
 
-\subsection{Using Nodes}
+\subsection{Nodes Performance}
 In Figure \ref{fig:proc vs nodes}, we analyzed the sorting of $q = [20:27]$ elements while increasing the number of nodes used for the partition. We observed a significant reduction in execution time, with a decrease of up to 50\% for 8 nodes.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\linewidth]{assets/performance.png}
+    \caption{Execution time with different processes}
+    \label{fig:performance}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\linewidth]{assets/speedup.png}
+    \caption{Speedup compared to QuickSort }
+    \label{fig:speedup}
+\end{figure}
 
 \begin{figure}[h!]
     \centering
