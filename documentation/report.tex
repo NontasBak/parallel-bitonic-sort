@@ -202,31 +202,46 @@ Different testings took place in \textbf{rome partition} of \href{https://hpc.it
 Figure \ref{fig:performance} shows the performance of our code in efficiently handling large datasets. In each execution, the number of elements as well as the number of parallel processes was doubled (2\textsuperscript{27} elements/process).
 
 \subsection{Parallel processing}
-The performance of sorting 2\textsuperscript{27} elements in different processes is presented in Figure \ref{fig:speedup}. The speedup is calculated by comparing the execution time to that of a single process, which is equivalent to using quick sort. In the case of 128 processes, the execution time is almost \textbf{20 times reduced}. This confirms that increasing the number of processes accelerates the execution of the algorithm.
+The performance of sorting 2\textsuperscript{27} elements in different processes is presented in Figure \ref{fig:speedup}. The speedup is calculated by comparing the execution time to that of a single process, which is equivalent to using quick sort. In the case of 128 processes, the execution time is almost \textbf{18 times reduced}. This confirms that increasing the number of processes accelerates the execution of the algorithm.
 
 \subsection{Nodes Performance}
-In Figure \ref{fig:proc vs nodes}, we analyzed the sorting of $q = [20:27]$ elements while increasing the number of nodes used for the partition. We observed a significant reduction in execution time, with a decrease of up to 50\% for 8 nodes.
+In Figure \ref{fig:proc vs nodes}, we analyzed the sorting of $q = [20:27]$ elements with 128 processes while increasing the number of nodes used for the partition. We observed a significant reduction in execution time, with a decrease of up to 45\% for 8 nodes.
 
 \begin{figure}[h!]
     \centering
     \includegraphics[width=1\linewidth]{assets/performance.png}
-    \caption{Execution time with different processes}
+    \caption{Execution time with different processes ($2^{27}$ elements per process).}
     \label{fig:performance}
 \end{figure}
 
 \begin{figure}[h!]
     \centering
     \includegraphics[width=1\linewidth]{assets/speedup.png}
-    \caption{Speedup compared to QuickSort }
+    \caption{Speedup compared to QuickSort ($2^{27}$ elements total scattered across multiple processes).}
     \label{fig:speedup}
 \end{figure}
 
 \begin{figure}[h!]
     \centering
     \includegraphics[width=1\linewidth]{execution_time_vs_elements.png}
-    \caption{Execution time using different number of nodes}
+    \caption{Execution time using different number of nodes (128 processes).}
     \label{fig:proc vs nodes}
 \end{figure}
+
+\newpage
+\begin{thebibliography}{9}
+\bibitem{mpi_bitonic}
+Venugopal, V., Cohen, V., Hillman, B., Suarez, K. (2012). \textit{Parallel Bitonic Sort using MPI}. \url{https://people.cs.rutgers.edu/~venugopa/parallel_summer2012/mpi_bitonic.html}
+
+\bibitem{quartic}
+Frédéric Jarlier, Nicolas Joly, Nicolas Fedy, Thomas Magalhaes. (2020). \textit{QUARTIC: QUick pArallel algoRithms for high-Throughput se}. \url{https://www.researchgate.net/publication/342402983_QUARTIC_QUick_pArallel_algoRithms_for_high-Throughput_se}
+
+\end{thebibliography}
+
+\begin{itemize}
+    \item The complete algorithm implementation was explained by our professor Nikolaos Pitsianis.
+    \item Evaluating the final result by reducing booleans to a single value was done with the help of Copilot.
+\end{itemize}
 
 
 
