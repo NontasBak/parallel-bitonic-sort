@@ -27,8 +27,9 @@ make run
 make clean
 ```
 
-In order to change the number of elements per process and the number of processes, you can modify the
-variables `num_q` and `num_p` inside the `main` function.
+In order to change the number of elements per process, you can modify the variable `num_q` inside the `main` function.
+
+To change the number of processes, you can modify the `mpirun` command in the `Makefile`.
 
 ## Benchmarks
 
